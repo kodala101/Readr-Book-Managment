@@ -1,6 +1,7 @@
 package bookapp.repositories;
 
 import bookapp.entities.ReadingSession;
+import bookapp.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -68,4 +69,12 @@ public interface ReadingSessionRepository extends JpaRepository<ReadingSession, 
      * @return an {@link Optional} containing the latest {@link ReadingSession} if one exists; empty otherwise
      */
     Optional<ReadingSession> findFirstByUserIdOrderBySessionDateDesc(Long userId);
+
+    /**
+     * Retrieves all logged reading sessions recorded by a specific user.
+     *
+     * @param user The {@link User} entity owner.
+     * @return A list of sessions logged by the user.
+     */
+    List<ReadingSession> findByUser(User user);
 }

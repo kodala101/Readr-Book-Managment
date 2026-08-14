@@ -1,6 +1,9 @@
 package bookapp.entities;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.time.LocalDateTime;
 
@@ -16,8 +19,11 @@ public class Review {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private Integer rating;
+    @Column(name = "rating", nullable = false)
+    @NotNull(message = "Rating is required")
+    @DecimalMin(value = "0.5", message = "Rating must be at least 0.5")
+    @DecimalMax(value = "5.0", message = "Rating cannot exceed 5.0")
+    private Double rating;
 
     @Column(columnDefinition = "TEXT")
     private String content; // Content to be sanitized with Jsoup in the service layer

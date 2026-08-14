@@ -1,6 +1,7 @@
 package bookapp.repositories;
 
 import bookapp.entities.JournalEntry;
+import bookapp.entities.User;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -46,4 +47,12 @@ public interface JournalEntryRepository extends JpaRepository<JournalEntry, Long
      * @return an {@link Optional} containing the entry if found and owned by the user; empty otherwise
      */
     Optional<JournalEntry> findByIdAndUserId(Long id, Long userId);
+
+    /**
+     * Retrieves all journal entries written by a specific user.
+     *
+     * @param user The {@link User} entity author.
+     * @return A list of journal entries belonging to the user.
+     */
+    List<JournalEntry> findByUser(User user);
 }

@@ -1,98 +1,131 @@
 package bookapp.security.service;
 
 import bookapp.entities.User;
+import bookapp.entities.VerificationToken;
+import bookapp.enums.Role;
 import bookapp.repositories.UserRepository;
+import bookapp.repositories.VerificationTokenRepository;
 import bookapp.security.dto.AuthResponse;
 import bookapp.security.dto.LoginRequest;
 import bookapp.security.dto.RegisterRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
- * Business logic service responsible for managing user authentication workflows.
- * <p>
- * Handles account registration, credentials verification, password hashing,
- * and delegating JWT token creation upon successful login or sign-up.
+ * Service class responsible for handling user authentication lifecycle events,
+ * including user registration, account verification, token processing, and credential validation.
  */
 @Service
+@RequiredArgsConstructor
 public class AuthService {
-
     private final UserRepository userRepository;
+    private final VerificationTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
 
     /**
-     * Constructs the authentication service with required dependencies.
+     * Registers a new user account in a disabled state and generates an account verification token.
      *
-     * @param userRepository repository interface for user database operations
-     * @param passwordEncoder utility for securely encoding raw passwords
-     * @param authenticationManager Spring Security manager used to verify credentials
-     * @param jwtService service responsible for JWT generation and validation
+     * @param request The {@link RegisterRequest} containing requested credentials (username, email, password).
+     * @return An {@link AuthResponse} containing the initial registration details or status message.
+     * @throws IllegalArgumentException If the username or email is already registered.
      */
-    public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       AuthenticationManager authenticationManager,
-                       JwtService jwtService) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
-    }
-
-    /**
-     * Registers a new user account in PostgreSQL.
-     * <p>
-     * Verifies that the requested username and email are unique, securely hashes
-     * the password using {@link PasswordEncoder}, persists the new {@link User} entity,
-     * and issues a signed JWT token for immediate authentication.
-     *
-     * @param request data transfer object containing username, email, and raw password
-     * @return an {@link AuthResponse} containing the issued JWT token and basic user details
-     * @throws RuntimeException if the username or email address is already registered
-     */
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.findByUsername(request.username()).isPresent()) {
-            throw new RuntimeException("Username is already taken!");
+        if (userRepository.existsByUsername(request.username())) {
+            throw new IllegalArgumentException("Username is already taken.");
         }
-        if (userRepository.findByEmail(request.email()).isPresent()) {
-            throw new RuntimeException("Email is already in use!");
+        if (userRepository.existsByEmail(request.email())) {
+            throw new IllegalArgumentException("Email is already registered.");
         }
 
-        User user = new User();
-        user.setUsername(request.username());
-        user.setEmail(request.email());
-        user.setPassword(passwordEncoder.encode(request.password()));
+        // 1. Save new user (disabled until email verification)
+        User user = User.builder()
+                .username(request.username())
+                .email(request.email())
+                .password(passwordEncoder.encode(request.password()))
+                .role(Role.USER)
+                .enabled(false)
+                .build();
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
-        String token = jwtService.generateToken(user.getUsername(), user.getId());
-        return new AuthResponse(token, user.getId(), user.getUsername(), user.getEmail());
+        // 2. Generate and store verification token (expires in 24 hours)
+        String tokenString = UUID.randomUUID().toString();
+        VerificationToken verificationToken = VerificationToken.builder()
+                .token(tokenString)
+                .user(savedUser)
+                .expiryDate(LocalDateTime.now().plusHours(24))
+                .build();
+
+        tokenRepository.save(verificationToken);
+
+        //TODO: Trigger Email Service to send verification link containing tokenString
+        String jwtToken = jwtService.generateToken(savedUser.getUsername(), savedUser.getId());
+
+        return new AuthResponse(jwtToken, savedUser.getId(), savedUser.getUsername(), savedUser.getEmail());
     }
 
     /**
-     * Authenticates existing user credentials against the database.
-     * <p>
-     * Delegates credential validation to Spring Security's {@link AuthenticationManager}.
-     * If validation succeeds, generates and returns a new JWT token.
+     * Authenticates an existing user and returns a freshly generated JWT token.
      *
-     * @param request data transfer object containing the user's login credentials
-     * @return an {@link AuthResponse} containing the generated JWT token and user details
-     * @throws BadCredentialsException if username or password does not match database records
-     * @throws RuntimeException if the user record cannot be found after successful authentication
+     * @param request The {@link LoginRequest} containing login credentials.
+     * @return An {@link AuthResponse} record containing the valid JWT string and core user metadata.
      */
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.username(), request.password())
+                new UsernamePasswordAuthenticationToken(
+                        request.username(),
+                        request.password()
+                )
         );
 
         User user = userRepository.findByUsername(request.username())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        String token = jwtService.generateToken(user.getUsername(), user.getId());
+                .orElseThrow(() -> new IllegalArgumentException("Invalid username or password."));
 
-        return new AuthResponse(token, user.getId(), user.getUsername(), user.getEmail());
+        String jwtToken = jwtService.generateToken(user.getUsername(), user.getId());
+
+        return new AuthResponse(jwtToken, user.getId(), user.getUsername(), user.getEmail());
+    }
+
+    /**
+     * Validates a verification token string from an activation link, enables the user account,
+     * and deletes the consumed token.
+     *
+     * @param token The token string sent via request parameter.
+     * @return {@code true} if verification succeeded and account was enabled; {@code false} if token is invalid or expired.
+     */
+    @Transactional
+    public boolean verifyToken(String token) {
+        Optional<VerificationToken> optionalToken = tokenRepository.findByToken(token);
+
+        if (optionalToken.isEmpty()) {
+            return false;
+        }
+
+        VerificationToken verificationToken = optionalToken.get();
+
+        // Check token expiration
+        if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            tokenRepository.delete(verificationToken);
+            return false;
+        }
+
+        // Activate user and purge token
+        User user = verificationToken.getUser();
+        user.setEnabled(true);
+        userRepository.save(user);
+
+        tokenRepository.delete(verificationToken);
+
+        return true;
     }
 }

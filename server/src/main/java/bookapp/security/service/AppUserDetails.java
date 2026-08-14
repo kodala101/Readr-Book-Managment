@@ -62,6 +62,15 @@ public class AppUserDetails implements UserDetails {
     }
 
     /**
+     * Convenience getter to access the wrapped User's ID directly.
+     *
+     * @return the unique database ID of the user
+     */
+    public Long getId() {
+        return user.getId();
+    }
+
+    /**
      * Indicates whether the user's account has expired.
      *
      * @return {@code true} (accounts do not expire by default)
@@ -91,5 +100,5 @@ public class AppUserDetails implements UserDetails {
      * @return {@code true} (accounts are enabled by default)
      */
     @Override
-    public boolean isEnabled() { return true; }
+    public boolean isEnabled() { return user.isEnabled(); }
 }

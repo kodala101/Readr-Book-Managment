@@ -5,7 +5,7 @@ import bookapp.enums.Role;
 import bookapp.repositories.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.NonNull;
+import org.springframework.lang.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,7 +36,7 @@ public class SystemDataInitializer implements CommandLineRunner {
      */
     @Override
     @Transactional
-    public void run(String @NonNull ... args) throws Exception {
+    public void run(@NonNull String... args) throws Exception {
         initGhostUser();
         initAdminUser();
     }

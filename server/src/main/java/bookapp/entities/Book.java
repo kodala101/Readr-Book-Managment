@@ -33,6 +33,15 @@ public class Book {
 
     private Integer publicationYear;
 
+    @Column(name = "page_count")
+    private Integer pageCount;
+
+    @Column(name = "average_rating")
+    private Double averageRating = 0.0;
+
+    @Column(name = "total_ratings", nullable = false)
+    private Integer totalRatings = 0;
+
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Review> reviews = new ArrayList<>();
