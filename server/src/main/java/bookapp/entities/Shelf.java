@@ -24,6 +24,8 @@ public class Shelf {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    private String description;
+
     @ManyToMany
     @JoinTable(
             name = "shelf_books",

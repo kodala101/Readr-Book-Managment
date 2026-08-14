@@ -1,8 +1,10 @@
 package bookapp.repositories;
 
 import bookapp.entities.ReadingGoal;
+import bookapp.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -21,4 +23,12 @@ public interface ReadingGoalRepository extends JpaRepository<ReadingGoal, Long> 
      * @return an {@link Optional} containing the user's {@link ReadingGoal} if set; empty otherwise
      */
     Optional<ReadingGoal> findByUserIdAndTargetYear(Long userId, Integer targetYear);
+
+    /**
+     * Retrieves all reading goals created by a specific user.
+     *
+     * @param user The {@link User} entity target.
+     * @return A list of goals belonging to the user.
+     */
+    List<ReadingGoal> findByUser(User user);
 }

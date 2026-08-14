@@ -32,8 +32,18 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
+    @Column(length = 500)
+    private String bio;
+
+    @Column(length = 1000)
+    private String avatarUrl;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean enabled = false;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

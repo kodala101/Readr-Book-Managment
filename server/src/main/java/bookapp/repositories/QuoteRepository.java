@@ -1,6 +1,7 @@
 package bookapp.repositories;
 
 import bookapp.entities.Quote;
+import bookapp.entities.User;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -34,4 +35,12 @@ public interface QuoteRepository extends JpaRepository<Quote, Long> {
      * @return a list of matching {@link Quote} entities
      */
     List<Quote> findByUserIdAndBookId(Long userId, Long bookId);
+
+    /**
+     * Retrieves all quotes saved by a specific user.
+     *
+     * @param user The {@link User} entity owner.
+     * @return A list of saved quotes belonging to the user.
+     */
+    List<Quote> findByUser(User user);
 }

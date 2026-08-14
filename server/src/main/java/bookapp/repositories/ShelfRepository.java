@@ -1,6 +1,7 @@
 package bookapp.repositories;
 
 import bookapp.entities.Shelf;
+import bookapp.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
@@ -49,4 +50,12 @@ public interface ShelfRepository extends JpaRepository<Shelf, Long> {
      * @return an {@link Optional} containing the matching {@link Shelf} if it exists; empty otherwise
      */
     Optional<Shelf> findByUserIdAndName(Long userId, String name);
+
+    /**
+     * Retrieves all shelves owned by a specific user.
+     *
+     * @param user The {@link User} entity owner.
+     * @return A list of shelves belonging to the user.
+     */
+    List<Shelf> findByUser(User user);
 }

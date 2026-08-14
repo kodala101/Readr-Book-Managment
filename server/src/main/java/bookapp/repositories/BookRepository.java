@@ -1,6 +1,8 @@
 package bookapp.repositories;
 
 import bookapp.entities.Book;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
@@ -39,4 +41,24 @@ public interface BookRepository extends JpaRepository<Book, Long> {
      * @return {@code true} if a book with the given ISBN exists; {@code false} otherwise
      */
     boolean existsByIsbn(String isbn);
+
+    /**
+     * Retrieves a paginated list of books with an average rating greater than or equal to
+     * the specified minimum threshold.
+     *
+     * @param minRating the minimum average rating threshold (e.g., 4.0)
+     * @param pageable the pagination and sorting information (page number, page size, sort order)
+     * @return a {@link Page} containing matching {@link Book} entities, or an empty page if none are found
+     */
+    Page<Book> findByAverageRatingGreaterThanEqual(Double minRating, Pageable pageable);
+
+    /**
+     * Retrieves a paginated list of books that have received at least the specified
+     * total number of ratings or reviews.
+     *
+     * @param minRatingsCount the minimum number of total ratings required (e.g., 100)
+     * @param pageable the pagination and sorting information (page number, page size, sort order)
+     * @return a {@link Page} containing matching {@link Book} entities, or an empty page if none are found
+     */
+    Page<Book> findByTotalRatingsGreaterThanEqual(Integer minRatingsCount, Pageable pageable);
 }

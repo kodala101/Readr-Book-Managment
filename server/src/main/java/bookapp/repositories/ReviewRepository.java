@@ -1,8 +1,11 @@
 package bookapp.repositories;
 
 import bookapp.entities.Review;
+import bookapp.entities.User;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
@@ -46,4 +49,26 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
      * @return an {@link Optional} containing the {@link Review} if it exists; empty otherwise
      */
     Optional<Review> findByUserIdAndBookId(Long userId, Long bookId);
+
+    /**
+     * Retrieves all reviews submitted by a specific user.
+     *
+     * @param user The {@link User} entity author.
+     * @return A list of reviews written by the user.
+     */
+    List<Review> findByUser(User user);
+
+    /**
+     * Calculates the average rating for a given book ID.
+     * SQL/JPQL AVG() natively returns a Double (e.g. 4.25).
+     * Wrapped in Optional in case the book has 0 reviews.
+     */
+    @Query("SELECT AVG(r.rating) FROM Review r WHERE r.book.id = :bookId")
+    Optional<Double> findAverageRatingByBookId(@Param("bookId") Long bookId);
+
+    /**
+     * Counts the total number of reviews/ratings for a given book ID.
+     */
+    int countByBookId(Long bookId);
 }
+
